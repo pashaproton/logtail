@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  BINARY_NAME: logtail
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+            binary_path: target/x86_64-unknown-linux-gnu/release/logtail
+
+          - name: macos-x86_64
+            os: macos-13
+            target: x86_64-apple-darwin
+            archive_ext: tar.gz
+            binary_path: target/x86_64-apple-darwin/release/logtail
+
+          - name: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            archive_ext: tar.gz
+            binary_path: target/aarch64-apple-darwin/release/logtail
+
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_ext: zip
+            binary_path: target/x86_64-pc-windows-msvc/release/logtail.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare artifact directory
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "${{ matrix.binary_path }}" "dist/${{ env.BINARY_NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}"
+          cp README.md dist/README.md
+          if [ -f LICENSE ]; then cp LICENSE dist/LICENSE; fi
+
+      - name: Create tar.gz archive
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
+        run: |
+          cd dist
+          tar -czf "../${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.name }}.tar.gz" *
+
+      - name: Create zip archive
+        if: matrix.archive_ext == 'zip'
+        shell: bash
+        run: |
+          cd dist
+          7z a "../${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.name }}.zip" *
+
+      - name: Create GitHub Release
+        if: matrix.name == 'linux-x86_64'
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+
+      - name: Upload tar.gz asset
+        if: matrix.archive_ext == 'tar.gz'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.name }}.tar.gz
+
+      - name: Upload zip asset
+        if: matrix.archive_ext == 'zip'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.name }}.zip
