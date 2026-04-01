@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "High-performance CLI tool for streaming and filtering large log files"
 license = "MIT"
+repository = "https://github.com/pashaproton/logtail"
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
