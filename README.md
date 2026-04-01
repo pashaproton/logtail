@@ -1,6 +1,8 @@
 # logtail
 
-**logtail** is a high-performance CLI tool for streaming and filtering large log files and text data.
+## logtail v0.1.0 (Beta)
+
+Initial beta release of **logtail** — a high-performance CLI tool for streaming and filtering large log files.
 
 ## Why logtail?
 
